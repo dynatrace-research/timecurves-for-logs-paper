@@ -12,23 +12,25 @@ of the static *Time Curves* in the paper are provided and can be played in your 
     - [Kafka Streams](#kafka-streams)
     - [Zookeeper dataset](#zookeeper-dataset)
     - [Multiple curve analysis](#multiple-curve-analysis)
-2. [Logs source in each of the Stream Processing Frameworks](#logs-source-in-each-of-the-stream-processing-frameworks)
-3. [Example logs found in each stage of the Stream Processing Frameworks](#example-logs-found-in-each-stage-of-the-stream-processing-frameworks)
-4. [Grouping events in the Stream Processing Frameworks experiment](#grouping-events-in-the-stream-processing-frameworks-experiment)
-5. [Correlation of the Stream Processing Frameworks with throughput](#correlation-of-the-stream-processing-frameworks-with-throughput)
-6. [Hardware setup](#hardware-setup)
-7. [Counterexample that the proposed distance is not a metric](#counterexample-that-the-proposed-distance-is-not-a-metric)
-8. [Optimizations to the distance computation](#optimizations-to-the-distance-computation)
-9. [Representing time within Time Curves](#representing-time-within-time-curves)
-10. [Manual analysis of the Zookeeper log file](#manual-analysis-of-the-zookeeper-log-file)
-11. [Large Language Model summarization](#large-language-model-summarization)
+2. [Glossary](#glossary)
+3. [Logs source in each of the Stream Processing Frameworks](#logs-source-in-each-of-the-stream-processing-frameworks)
+4. [Example logs found in each stage of the Stream Processing Frameworks](#example-logs-found-in-each-stage-of-the-stream-processing-frameworks)
+5. [Grouping events in the Stream Processing Frameworks experiment](#grouping-events-in-the-stream-processing-frameworks-experiment)
+6. [Correlation of the Stream Processing Frameworks with throughput](#correlation-of-the-stream-processing-frameworks-with-throughput)
+7. [Hardware setup](#hardware-setup)
+8. [Proofs for the distance function being a semimetric](#proofs-for-the-distance-function-being-a-semimetric)
+9. [Counterexample that the proposed distance is not a metric](#counterexample-that-the-proposed-distance-is-not-a-metric)
+10. [Optimizations to the distance computation](#optimizations-to-the-distance-computation)
+11. [Representing time within Time Curves](#representing-time-within-time-curves)
+12. [Manual analysis of the Zookeeper log file](#manual-analysis-of-the-zookeeper-log-file)
+13. [Large Language Model summarization](#large-language-model-summarization)
     - [Query about single checkpoint summarization in Label C](#query-about-single-checkpoint-summarization-in-label-c)
     - [Query about single checkpoint summarization in Label D](#query-about-single-checkpoint-summarization-in-label-d)
     - [Query about pairwise comparison between checkpoints in Label D](#query-about-pairwise-comparison-between-checkpoints-in-label-d)
     - [Query about pairwise comparison between Label C and E](#query-about-pairwise-comparison-between-label-c-and-e)
-12. [Log datasets](#log-datasets)
-13. [Citing](#citing)
-14. [References](#references)
+14. [Log datasets](#log-datasets)
+15. [Citing](#citing)
+16. [References](#references)
 
 ## Animated Time Curves
 
@@ -50,6 +52,27 @@ is played from start to end.
 
 ### Multiple curve analysis
 <img src="./media/image5.gif" alt="drawing" width="400"/>
+
+## Glossary
+
+The following terms are used throughout the main manuscript. Definitions are provided 
+in the context used in the manuscript, rather than their formal definitions.
+
+- Log: String represented text message usually consisting of a timestamp and a payload. 
+- Template: A string representation of a set of logs which are very close semantically and typically differ only in syntactical elements, such as host names or service ID's. 
+- Distance: A number that quantifies how far away two objects are, such as for example, points in a 2D projection. Similarly, the notion of distance may be extended to be a "metric distance", where formal mathematical constraints must be satisfied (e.g. triangle inequality). 
+- Semimetric: A semimetric is a distance metric that does not satisfy the triangle inequality but does satisfy all other constraints (separation, positivity, symmetry). 
+- Similarity measure: Inversely to a distance, it quantifies how close two objects are. 
+- Time Curve: A 2D projection of a set of data points which includes information about time and similarity between them. 
+- System: Any computer machine that can provide logging or tracing about the execution that is being performed. 
+- Event: A set of consecutive logs of a system which are related by, e.g., process, cause, etc.; in other words, a snapshot over small timeframe of a system based on the logging.  
+- Checkpoint: Representation of an event, which keeps its timestamp and corresponds to a data point in a Time Curve but replaces the set of original logs with a set of templates. 
+- Evolution of the system: Chronological sequence of events representing changes in the behavior of the system over time.  
+- Pattern: A set of contiguous checkpoints visually representing a particular evolution of the system, such as cycles, clusters, etc.
+
+Example visual patterns of interest in Time Curves can be found below:
+
+<img src="./media/image11.png" alt="drawing" width="400"/>
 
 ## Logs source in each of the Stream Processing Frameworks
 
@@ -209,6 +232,35 @@ The scalability section of the manuscript was run on a local machine
 with an Intel Core i9-11950H with disabled turbo boost running at 2.60
 GHz and 64 GB of memory. They were run on WSL with Ubuntu version 22,
 Java 17 and Python 3.8.
+
+## Proofs for the distance function being a semimetric
+The proposed distance function is formally not a metric, since a metric needs to satisfy the following properties for any elements $x$ and $y$ from the set:
+1. **Non-negativity**: $dist(x, y) \geq 0$.
+2. **Identity of indiscernibles**: $dist(x, y) = 0 \iff x = y$.
+3. **Symmetry**:  $dist(x, y) = dist(y, x)$.
+4. **Triangle inequality**: $dist(x, z) \leq dist(x, y) + dist(y, z)$.
+
+If only the first 3 properties are satisfied, but the triangular inequality
+is violated, then $dist$ is a semimetric. We will now prove that $D(\cdot,\cdot)$ is indeed a semimetric over the set of all possible checkpoints.
+
+1. Since all terms are non-negative, so is the $D(\cdot, \cdot)$, *i.e.*:
+    $$D'(x,y) =  \frac{1}{m} \sum_{i=0}^{m} \min_{j} d(y_i, x_j) \overset{d(x_i,y_j) \geq 0}{\geq} 0.$$
+    $$D(x,y) {\geq} \frac{\log_2 |x| \cdot 0 + \log_2 |y| \cdot 0}{\log_2 |x| + \log_2 |y|} = 0.$$
+
+2. Identity of indiscernibles can be verified as follows:
+        $$\begin{align*}
+             D(x,y) = 0 &\iff D'(x,y) = D'(y,x) = 0 \\
+             &\iff \left\{
+                 \begin{array}{ll}
+                     \forall i \min_{j = 0,\dots, n-1} &d(x_i, y_j) = 0, \\
+                     \forall j \min_{i = 0,\dots, m-1} &d(y_j, x_i) = 0. \\
+                 \end{array} \right. \\ 
+             &\iff \forall i \ \  x_i \in y \text{ and }  \forall j \ \  y_j \in x \\
+             &\iff x \subseteq y \text{ and } y \subseteq x \\
+             &\iff x = y.
+         \end{align*} $$
+3. Symmetry holds by design, because $D(x,y)$ involves both $D'(x,y)$ and $D'(y,x)$.
+4. The triangular inequality is the only violation of metric properties. This can be seen with nested checkpoints (a counterexample is available in section [Counterexample that the proposed distance is not a metric](#counterexample-that-the-proposed-distance-is-not-a-metric) ).
 
 ## Counterexample that the proposed distance is not a metric
 
